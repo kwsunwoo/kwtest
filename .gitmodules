@@ -1,0 +1,3 @@
+[submodule "Matlab"]
+	path = Matlab
+	url = https://github.com/quandl/Matlab.git
