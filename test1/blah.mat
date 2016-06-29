@@ -188,3 +188,5 @@ function saveEditable(editor){
            }
        });
 </script>
+
+bugfix
