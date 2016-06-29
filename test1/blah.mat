@@ -1,0 +1,190 @@
+<!-- load the jQuery and require.js libraries -->
+
+<script src="/static/nips/ckeditor/ckeditor.js"></script>
+
+<script>
+CKEDITOR.config.removePlugins = 'Underline,JustifyCenter';
+</script>
+<!-- load the Aloha Editor core and some plugins -->
+
+<script>
+$("#nopageedit").hide();
+function start_edit(){
+
+    //At the beginning of an edit, we need to replace the content of the
+    //editable div with it's databased content in order to preserve the
+    //template tags.
+
+    $(".editable").addClass("warning-ring")
+
+    $(".editable").each(function(index){
+        var myself = this;
+        var docvID = this.getAttribute('documentversion');
+        var blurbtext = this.getAttribute("blurbtext");
+        var request = $.ajax({
+    				url: "/Admin/RetrieveDocumentVersion",
+    				type: "POST",
+    				data: {
+    					docvID : docvID,
+                        csrfmiddlewaretoken: csrftoken,
+                        blurbtext : blurbtext
+    				},
+    				dataType: "html",
+    			})
+        request.done(function(msg){
+            //msg is returned with quotes around it. Strip those off.
+            myself.innerHTML = msg.slice(1,-1);
+
+        })
+    })
+    /* You must remove any countdown.js timers on the page before replacing the page with it's document version otherwise,
+    	Javascript will throw an exception.  */
+
+    jq2("[class$='-countdown']").parent().remove()
+    $('.editable').attr("contenteditable", 'true');
+    CKEDITOR.inlineAll();
+    $(".editable").attr("onblur", "ckeditorsave(this);")
+    window.status.bold();
+    window.status = "Click outside the editable area to save. Changes are LIVE!! Refresh page to discard changes.";
+    $("#editpage").hide();
+    $("#noeditpage").show();
+
+}
+function stop_edit(){
+    $("#noeditpage").hide();
+    $("#editpage").show();
+    location.reload();
+
+}
+function ckeditorsave(event){
+  for (var name in CKEDITOR.instances){
+    if ( CKEDITOR.instances[name].checkDirty() ){
+      editor = CKEDITOR.instances[name];
+      saveEditable(editor);
+    }
+  }
+}
+
+function saveEditable(editor){
+  var content = editor.getData();
+  var contentId = editor.name;
+  var pageId = window.location.pathname;
+  var originalContent = "N/A";
+  var documentversion = editor.container.getAttribute("documentversion");
+  var blurbtext = editor.container.getAttribute("blurbtext");
+  if ( contentId.match(/-aloha$/gi) ) {
+    contentId = contentId.replace( /-aloha/gi, '' );
+  }  /*I'm not sure what this does but it seems like it would matter*/
+  var request = jQuery.ajax({
+    url: "/Admin/SaveDocument",
+    type: "POST",
+    data: {
+      content : content,
+      originalContent: originalContent,
+      contentId : contentId,
+      pageId : pageId,
+      documentversion:documentversion,
+      blurbtext : blurbtext,
+      csrfmiddlewaretoken: csrftoken
+    },
+    success: function(data){
+        if (data['message']){
+            alert(data['message']);
+        }
+
+    },
+    error: function(xqXHR, textStatus){
+        window.status = textStatus;
+        debugger;
+    }
+
+  });
+
+};
+
+
+
+
+</script>
+
+<script>
+
+  // save all changes after leaving an editable
+  function(event){
+		var content = "dummy";
+		var contentId ="drumf";
+		var pageId = window.location.pathname;
+    var originalContent = "dummy";
+    var documentversion = ".getAttribute('documentversion')";
+    var blurbtext = ".getAttribute('blurbtext')";
+		if ( contentId.match(/-aloha$/gi) ) {
+			contentId = contentId.replace( /-aloha/gi, '' );
+		}
+		var request = jQuery.ajax({
+			url: "/Admin/SaveDocument",
+			type: "POST",
+			data: {
+				content : content,
+                  originalContent: originalContent,
+				contentId : contentId,
+				pageId : pageId,
+                  documentversion:documentversion,
+                  blurbtext : blurbtext,
+                  csrfmiddlewaretoken: csrftoken
+			},
+              success: function(data){
+                  if (data['message']){
+                      alert(data['message']);
+                  }
+
+              },
+              error: function(xqXHR, textStatus){
+                  window.status = textStatus;
+                  debugger;
+              }
+
+		});
+
+	});
+
+</script>
+<script type="text/javascript">
+
+
+       jQuery(document).ajaxSend(function(event, xhr, settings) {
+           function getCookie(name) {
+               var cookieValue = null;
+               if (document.cookie && document.cookie != '') {
+                   var cookies = document.cookie.split(';');
+                   for (var i = 0; i < cookies.length; i++) {
+                       var cookie = jQuery.trim(cookies[i]);
+                       // Does this cookie string begin with the name we want?
+                       if (cookie.substring(0, name.length + 1) == (name + '=')) {
+                           cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                           break;
+                       }
+                   }
+               }
+               return cookieValue;
+           }
+           function sameOrigin(url) {
+               // url could be relative or scheme relative or absolute
+               var host = document.location.host; // host + port
+               var protocol = document.location.protocol;
+               var sr_origin = '//' + host;
+               var origin = protocol + sr_origin;
+               // Allow absolute or scheme relative URLs to same origin
+               return (url == origin || url.slice(0, origin.length + 1) == origin + '/') ||
+                   (url == sr_origin || url.slice(0, sr_origin.length + 1) == sr_origin + '/') ||
+                   // or any other URL that isn't scheme relative or absolute i.e relative.
+                   !(/^(\/\/|http:|https:).*/.test(url));
+           }
+           function safeMethod(method) {
+               return (/^(GET|HEAD|OPTIONS|TRACE)$/.test(method));
+           }
+
+           if (!safeMethod(settings.type) && sameOrigin(settings.url)) {
+               xhr.setRequestHeader("X-CSRFToken", getCookie('csrftoken'));
+           }
+       });
+</script>
